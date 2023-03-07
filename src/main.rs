@@ -1,4 +1,4 @@
-use axum::{Router, Server, routing::get, extract::State};
+use axum::{Json,Router, Server, routing::get, extract::State, response::IntoResponse};
 use sysinfo::{System, SystemExt, CpuExt};
 use std::sync::{Arc, Mutex};
 
@@ -26,18 +26,11 @@ async fn root_get() -> &'static str {
     "Hi there!"
 }
 
-async fn cpus_get(State(state): State<AppState>) -> String {
-    use std::fmt::Write;
-
-    let mut s = String::new();
+#[axum::debug_handler]
+async fn cpus_get(State(state): State<AppState>) -> impl IntoResponse {
     let mut sys = state.sys.lock().unwrap();
     sys.refresh_cpu();
+    let v: Vec<_> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
 
-    for (i, cpu) in sys.cpus().iter().enumerate() {
-        let i = i+1;
-        let usage = cpu.cpu_usage();
-        writeln!(&mut s, "CPU {i} {usage}%").unwrap();
-    }
-
-    s
+    Json(v)
 }
