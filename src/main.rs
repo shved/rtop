@@ -1,4 +1,12 @@
-use axum::{Json,Router, Server, routing::get, extract::State, response::IntoResponse};
+use axum::{
+    Json,
+    Router,
+    Server, routing::get,
+    extract::State,
+    response::IntoResponse,
+    response::Response,
+    response::Html,
+};
 use sysinfo::{System, SystemExt, CpuExt};
 use std::sync::{Arc, Mutex};
 
@@ -6,6 +14,7 @@ use std::sync::{Arc, Mutex};
 async fn main() {
     let router = Router::new()
         .route("/", get(root_get))
+        .route("/index.js", get(indexjs_get))
         .route("/api/cpus", get(cpus_get)).with_state(AppState {
         sys: Arc::new(Mutex::new(System::new())),
     });
@@ -22,8 +31,21 @@ struct AppState {
     sys: Arc<Mutex<System>>,
 }
 
-async fn root_get() -> &'static str {
-    "Hi there!"
+#[axum::debug_handler]
+async fn root_get() -> impl IntoResponse {
+    let markup = tokio::fs::read_to_string("src/index.html").await.unwrap();
+
+    Html(markup)
+}
+
+#[axum::debug_handler]
+async fn indexjs_get() -> impl IntoResponse {
+    let markup = tokio::fs::read_to_string("src/index.js").await.unwrap();
+
+    Response::builder()
+        .header("content-type", "application/javascript;charset=utf-8")
+        .body(markup)
+        .unwrap()
 }
 
 #[axum::debug_handler]
