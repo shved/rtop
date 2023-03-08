@@ -1,4 +1,4 @@
-import { h, render } from "http://unpkg.com/preact?module";
+import { h, render } from "https://unpkg.com/preact?module";
 import htm from "https://unpkg.com/htm?module";
 
 const html = htm.bind(h);
@@ -7,7 +7,7 @@ function App(props) {
   return html`
     <div>
       ${props.cpus.map((cpu) => {
-        return html` <div class="bar">
+        return html`<div class="bar">
           <div class="bar-inner" style="width: ${cpu}%"></div>
           <label>${cpu.toFixed(2)}%</label>
         </div>`;
@@ -18,12 +18,13 @@ function App(props) {
 
 let i = 0;
 
-setInterval(async () => {
-  let response = await fetch('/api/cpus');
-  if (response.status !== 200) {
-    throw new Error(`HTTP error status: ${response.status}`);
-  }
-  let json = await response.json();
+let url = new URL("/realtime/cpus", window.location.href);
+// http => ws
+// https => wss
+url.protocol = url.protocol.replace("http", "ws");
 
+let ws = new WebSocket(url.href);
+ws.onmessage = (ev) => {
+  let json = JSON.parse(ev.data);
   render(html`<${App} cpus=${json}></${App}>`, document.body);
-}, 1000);
+};
